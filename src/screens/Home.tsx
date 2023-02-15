@@ -1,7 +1,5 @@
 import { View, Text, ScrollView } from "react-native";
-
 import { generateDatesFromYearBeginning } from "../utils/generate-dates-from-year-beginning";
-
 import { Header } from "../components/Header";
 import { HabitDay, DAY_SIZE } from "../components/HabitDay";
 
