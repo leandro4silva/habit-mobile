@@ -1,3 +1,5 @@
+import './src/lib/dayjs';
+
 import { StatusBar } from 'react-native';
 import { Loading } from './src/components/Loading';
 import { Routes } from './src/routes';
