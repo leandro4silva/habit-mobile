@@ -8,6 +8,7 @@ import { ProgressBar } from '../components/ProgressBar';
 import { Checkbox } from '../components/Checkbox';
 import { Loading } from '../components/Loading';
 import { api } from '../lib/axios';
+import { generateProgressPercentage } from '../utils/generate-progress-percentage';
 
 
 interface HabitProps{
@@ -25,12 +26,18 @@ interface DayInfoProps{
 export function Habit(){
     const [loading, setLoading] = useState(true);
     const [dayInfo, setDayInfo] = useState<DayInfoProps | null>(null);
+    const [completedHabits, setCompletedHabits] = useState<string[]>([]);
+
     const route = useRoute()
     const { date } = route.params as HabitProps;
 
     const parsedDate = dayjs(date.toString());
     const dayOfWeek = parsedDate.format('dddd');
     const dayAndMonth = parsedDate.format('DD/MM');
+
+    const habitsProgress = dayInfo?.possibleHabits.length 
+    ? generateProgressPercentage(dayInfo.possibleHabits.length, completedHabits.length) 
+    : 0
 
     async function fetchHabits(){
         try{
@@ -41,11 +48,20 @@ export function Habit(){
                 }
             })
             setDayInfo(response.data);
+            setCompletedHabits(response.data.completedHabits);
         }catch(error){ 
             console.log(error);
             Alert.alert('Ops', 'Não foi possivel carregar as informações dos habitos.');
         }finally{
             setLoading(false);
+        }
+    }
+
+    async function handleToogleHAbits(habitId: string){
+        if(completedHabits.includes(habitId)){
+            setCompletedHabits(prevState => prevState.filter(habit => habit !=  habitId));
+        }else{
+            setCompletedHabits(prevState => [...prevState, habitId]);
         }
     }
 
@@ -75,7 +91,7 @@ export function Habit(){
                     {dayAndMonth}
                 </Text>
 
-                <ProgressBar progress={30}/>
+                <ProgressBar progress={habitsProgress}/>
 
                 <View className='mt-6'>
                     {
@@ -85,7 +101,8 @@ export function Habit(){
                                 <Checkbox 
                                     key={habit.id} 
                                     title={habit.title} 
-                                    checked={true} 
+                                    onPress={() => handleToogleHAbits(habit.id)}
+                                    checked={completedHabits.includes(habit.id)} 
                                 />
                             )
                         })
