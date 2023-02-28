@@ -5,10 +5,12 @@ import dayjs from 'dayjs';
 import {View, Text, ScrollView, Alert} from 'react-native';
 import { BackButton } from '../components/BackButton';
 import { ProgressBar } from '../components/ProgressBar';
+import { HabitEmpty } from '../components/HabitEmpty';
 import { Checkbox } from '../components/Checkbox';
 import { Loading } from '../components/Loading';
 import { api } from '../lib/axios';
 import { generateProgressPercentage } from '../utils/generate-progress-percentage';
+import clsx from 'clsx';
 
 
 interface HabitProps{
@@ -32,6 +34,7 @@ export function Habit(){
     const { date } = route.params as HabitProps;
 
     const parsedDate = dayjs(date.toString());
+    const isDateInPast = parsedDate.endOf('day').isBefore(new Date());
     const dayOfWeek = parsedDate.format('dddd');
     const dayAndMonth = parsedDate.format('DD/MM');
 
@@ -57,12 +60,19 @@ export function Habit(){
         }
     }
 
-    async function handleToogleHAbits(habitId: string){
-        if(completedHabits.includes(habitId)){
-            setCompletedHabits(prevState => prevState.filter(habit => habit !=  habitId));
-        }else{
-            setCompletedHabits(prevState => [...prevState, habitId]);
-        }
+    async function handleToogleHabits(habitId: string){
+        try{
+            await api.patch(`/habits/${habitId}/toggle`);
+
+            if(completedHabits.includes(habitId)){
+                setCompletedHabits(prevState => prevState.filter(habit => habit !=  habitId));
+            }else{
+                setCompletedHabits(prevState => [...prevState, habitId]);
+            }
+        }catch(error){
+            console.log(error);
+            Alert.alert('Ops', 'Não foi possivel atualizar o status do hábito.')
+        }   
     }
 
     useEffect(() => {
@@ -93,21 +103,33 @@ export function Habit(){
 
                 <ProgressBar progress={habitsProgress}/>
 
-                <View className='mt-6'>
+                <View className={clsx('mt-6', {
+                    "opacity-50": isDateInPast
+                })}>
                     {
-                        dayInfo?.possibleHabits && 
-                        dayInfo.possibleHabits.map((habit) => {
-                            return(
-                                <Checkbox 
-                                    key={habit.id} 
-                                    title={habit.title} 
-                                    onPress={() => handleToogleHAbits(habit.id)}
-                                    checked={completedHabits.includes(habit.id)} 
-                                />
-                            )
-                        })
+                        dayInfo?.possibleHabits ? 
+                            dayInfo.possibleHabits.map((habit) => {
+                                return(
+                                    <Checkbox 
+                                        key={habit.id} 
+                                        title={habit.title} 
+                                        onPress={() => handleToogleHabits(habit.id)}
+                                        disabled={isDateInPast}
+                                        checked={completedHabits.includes(habit.id)} 
+                                    />
+                                )
+                            })
+                        :
+                        <HabitEmpty />
                     }
                 </View>
+                {
+                    isDateInPast && (
+                        <Text className='text-white mt-10 text-center'>
+                            Você não pode editar hábitos de uma data passada.
+                        </Text>
+                    )
+                }
             </ScrollView>
         </View>
     );
